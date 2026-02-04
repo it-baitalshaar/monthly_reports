@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Attendance Report Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="date"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .employee-selection {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        
+        .employee-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+        }
+        
+        .employee-checkbox input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        .employee-checkbox label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .select-all-controls {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .select-all-controls button {
+            padding: 5px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .select-all-controls button:hover {
+            background: #5568d3;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        
+        .flash {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .flash.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .flash.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Monthly Attendance Report</h1>
+        <p class="subtitle">Generate Excel reports from your attendance database</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="/generate" id="reportForm">
+            <div class="form-group">
+                <label for="from_date">From Date</label>
+                <input type="date" id="from_date" name="from_date" required 
+                       value="{{ from_date_default }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="to_date">To Date</label>
+                <input type="date" id="to_date" name="to_date" required
+                       value="{{ to_date_default }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="filter_type">Filter by Department (Optional)</label>
+                <select id="filter_type" name="filter_type">
+                    <option value="">All Employees</option>
+                    <option value="construction">Construction</option>
+                    <option value="maintenance">Maintenance</option>
+                </select>
+                <div class="info-box" style="margin-top: 10px;">
+                    <strong>Filter Options:</strong><br>
+                    • <strong>All Employees</strong>: Include all employees<br>
+                    • <strong>Construction</strong>: Only employees working on construction projects<br>
+                    • <strong>Maintenance</strong>: Only employees working on maintenance projects
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Select Employees (Leave empty to select all)</label>
+                <div class="employee-selection" id="employeeSelection">
+                    <div class="select-all-controls">
+                        <span style="font-weight: 600; font-size: 12px;">
+                            Select Employees: 
+                            <span id="selectedCount" style="color: #667eea; font-weight: 700;">0 selected</span>
+                        </span>
+                        <div>
+                            <button type="button" onclick="selectAll()">Select All</button>
+                            <button type="button" onclick="deselectAll()" style="margin-left: 5px;">Deselect All</button>
+                        </div>
+                    </div>
+                    <div id="employeeList" class="loading">Loading employees...</div>
+                </div>
+                <div class="info-box" style="margin-top: 10px;">
+                    <strong>Note:</strong> If no employees are selected, all employees matching the filter will be included.
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="monthly_hours">Monthly Hours (Auto-calculated - You can override)</label>
+                <input type="number" id="monthly_hours" name="monthly_hours" 
+                       placeholder="Auto-calculated based on date range" step="0.01" readonly
+                       style="background-color: #f0f7ff; cursor: not-allowed;">
+                <div class="info-box" style="margin-top: 10px;">
+                    <strong>Auto-calculation:</strong><br>
+                    <span id="calculationDetails">Select date range to see calculation</span><br><br>
+                    <strong>Formula:</strong> Number of days × 8 hours/day<br>
+                    • 31 days = 248 hours<br>
+                    • 30 days = 240 hours<br>
+                    • 29 days = 232 hours<br>
+                    • 28 days = 224 hours<br><br>
+                    <em style="font-size: 12px;">💡 Tip: Click the field to enable manual override</em>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">Generate Report</button>
+        </form>
+    </div>
+    
+    <script>
+        let employeesData = [];
+        
+        // Load employees when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmployees();
+            calculateMonthlyHours();
+            
+            // Reload employees when dates or filter changes
+            document.getElementById('from_date').addEventListener('change', function() {
+                loadEmployees();
+                calculateMonthlyHours();
+            });
+            document.getElementById('to_date').addEventListener('change', function() {
+                loadEmployees();
+                calculateMonthlyHours();
+            });
+            document.getElementById('filter_type').addEventListener('change', loadEmployees);
+            
+            // Allow manual override of monthly hours
+            const monthlyHoursInput = document.getElementById('monthly_hours');
+            monthlyHoursInput.addEventListener('click', function() {
+                if (this.readOnly) {
+                    this.readOnly = false;
+                    this.style.backgroundColor = 'white';
+                    this.style.cursor = 'text';
+                    this.select();
+                }
+            });
+            
+            // Make it readonly again if user clears it
+            monthlyHoursInput.addEventListener('blur', function() {
+                if (!this.value || this.value === '') {
+                    this.readOnly = true;
+                    this.style.backgroundColor = '#f0f7ff';
+                    this.style.cursor = 'not-allowed';
+                    calculateMonthlyHours();
+                }
+            });
+        });
+        
+        function calculateMonthlyHours() {
+            const fromDate = document.getElementById('from_date').value;
+            const toDate = document.getElementById('to_date').value;
+            const monthlyHoursInput = document.getElementById('monthly_hours');
+            const calculationDetails = document.getElementById('calculationDetails');
+            
+            if (!fromDate || !toDate) {
+                monthlyHoursInput.value = '';
+                calculationDetails.textContent = 'Select date range to see calculation';
+                return;
+            }
+            
+            const from = new Date(fromDate);
+            const to = new Date(toDate);
+            
+            if (to < from) {
+                monthlyHoursInput.value = '';
+                calculationDetails.textContent = 'Invalid date range';
+                return;
+            }
+            
+            // Calculate difference in days (inclusive of both dates)
+            const diffTime = Math.abs(to - from);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both dates
+            const calculatedHours = diffDays * 8;
+            
+            // Only update if field is readonly (auto-calculated)
+            if (monthlyHoursInput.readOnly) {
+                monthlyHoursInput.value = calculatedHours;
+            }
+            
+            // Update calculation details
+            calculationDetails.innerHTML = `<strong>${diffDays} days</strong> × 8 hours/day = <strong style="color: #667eea;">${calculatedHours} hours</strong>`;
+        }
+        
+        function loadEmployees() {
+            const fromDate = document.getElementById('from_date').value;
+            const toDate = document.getElementById('to_date').value;
+            const filterType = document.getElementById('filter_type').value;
+            
+            const employeeList = document.getElementById('employeeList');
+            employeeList.innerHTML = '<div class="loading">Loading employees...</div>';
+            
+            fetch('/get_employees', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from_date: fromDate,
+                    to_date: toDate,
+                    filter_type: filterType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    employeesData = data.employees;
+                    renderEmployeeList();
+                } else {
+                    employeeList.innerHTML = '<div style="color: red;">Error loading employees: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                employeeList.innerHTML = '<div style="color: red;">Error: ' + error + '</div>';
+            });
+        }
+        
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('#employeeList input[type="checkbox"]:checked');
+            const count = checkboxes.length;
+            const total = employeesData.length;
+            const countElement = document.getElementById('selectedCount');
+            
+            if (count === 0) {
+                countElement.textContent = '0 selected (all will be included)';
+                countElement.style.color = '#666';
+            } else {
+                countElement.textContent = `${count} of ${total} selected`;
+                countElement.style.color = '#667eea';
+            }
+        }
+        
+        function renderEmployeeList() {
+            const employeeList = document.getElementById('employeeList');
+            
+            if (employeesData.length === 0) {
+                employeeList.innerHTML = '<div class="loading">No employees found for the selected criteria.</div>';
+                updateSelectedCount();
+                return;
+            }
+            
+            let html = '';
+            employeesData.forEach(emp => {
+                html += `
+                    <div class="employee-checkbox">
+                        <input type="checkbox" id="emp_${emp.id}" name="selected_employees" value="${emp.id}" onchange="updateSelectedCount()">
+                        <label for="emp_${emp.id}">${emp.name}</label>
+                    </div>
+                `;
+            });
+            
+            employeeList.innerHTML = html;
+            updateSelectedCount();
+        }
+        
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('#employeeList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+        
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('#employeeList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+    </script>
+</body>
+</html>
