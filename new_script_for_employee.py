@@ -103,7 +103,12 @@ try:
         employee_sheet['B4'] = first_row['name']
         employee_sheet.title = f"{first_row['name']}"
         employee_sheet.sheet_view.rightToLeft = template_sheet.sheet_view.rightToLeft
-        employee_sheet[f'I{2}'] = first_row['salary']
+        employee_sheet['I2'] = first_row['salary']
+
+        # Write date range and month name to the correct template cells
+        employee_sheet['F2'] = from_date
+        employee_sheet['F3'] = to_date
+        employee_sheet['F4'] = calendar.month_name[from_date.month]
 
         row_date = 7  # Start from row 7
 
@@ -170,7 +175,7 @@ try:
                 project_parts = []
                 for _, proj_row in day_data.iterrows():
                     proj_name = proj_row['project_name'] if proj_row['project_name'] else 'Unknown'
-                    proj_hours = int(proj_row['working_hours']) if proj_row['working_hours'] != 0 else 0
+                    proj_hours = int(proj_row['working_hours']) if proj_row['working_hours'] is not None and proj_row['working_hours'] != 0 else 0
                     project_parts.append(f"{proj_name} {proj_hours}hrs")
                 project_text = " + ".join(project_parts)
 

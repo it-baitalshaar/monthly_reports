@@ -3,6 +3,7 @@ import psycopg2
 from openpyxl import load_workbook
 from openpyxl.styles import Protection, Alignment
 from datetime import datetime, timedelta
+import calendar
 import os
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib.pagesizes import A4
@@ -205,35 +206,12 @@ def main():
             employee_sheet['B4'] = first_row['name']
             employee_sheet.title = f"{first_row['name']}"
             employee_sheet.sheet_view.rightToLeft = template_sheet.sheet_view.rightToLeft
-            employee_sheet[f'I{2}'] = first_row['salary']
+            employee_sheet['I2'] = first_row['salary']
             
-            # Write date range (try common header cells)
-            date_range_text = f"{from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}"
-            date_range_cells = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-            for cell_ref in date_range_cells:
-                try:
-                    if employee_sheet[cell_ref].value is None or employee_sheet[cell_ref].value == '':
-                        employee_sheet[cell_ref] = f"Period: {date_range_text}"
-                        break
-                except:
-                    continue
-            
-            # Write monthly hours
-            # Common locations: I3, I4, I5, or other cells depending on template
-            # Update the cell reference below if your template uses a different cell for monthly hours
-            monthly_hours_cells = ['I3', 'I4', 'I5', 'H3', 'H4']  # Try multiple common locations
-            monthly_hours_written = False
-            for cell_ref in monthly_hours_cells:
-                try:
-                    employee_sheet[cell_ref] = monthly_hours
-                    monthly_hours_written = True
-                    print(f"  Monthly hours ({monthly_hours}) written to {cell_ref}")
-                    break
-                except:
-                    continue
-            
-            if not monthly_hours_written:
-                print(f"  Warning: Could not write monthly hours. Please check template cell reference.")
+            # Write date range and month name to the correct template cells
+            employee_sheet['F2'] = from_date
+            employee_sheet['F3'] = to_date
+            employee_sheet['F4'] = calendar.month_name[from_date.month]
             
             # Apply cell protection (unlock editable cells)
             try:

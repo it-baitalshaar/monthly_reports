@@ -75,9 +75,8 @@ def get_employees_list(from_date, to_date, filter_type=None):
     cursor = connection.cursor()
     
     try:
-        if filter_type and filter_type.lower() in ['construction', 'maintenance']:
-            # Filter by project names containing construction/maintenance keywords
-            filter_keyword = filter_type.lower()
+        if filter_type:
+            # Filter directly by Employee.department (case-insensitive)
             query = '''
                 SELECT DISTINCT
                     e.employee_id,
@@ -86,19 +85,13 @@ def get_employees_list(from_date, to_date, filter_type=None):
                     "Employee" e
                 INNER JOIN 
                     "Attendance" a ON e.employee_id = a.employee_id
-                INNER JOIN
-                    "Attendance_projects" ap ON a.id = ap.attendance_id
-                INNER JOIN
-                    projects p ON ap.project_id = p.project_id
                 WHERE 
                     a.date BETWEEN %s AND %s
-                    AND (LOWER(p.project_name) LIKE %s OR LOWER(p.project_name) LIKE %s)
+                    AND UPPER(e.department) = UPPER(%s)
                 ORDER BY 
                     e.name;
             '''
-            # Search for construction/maintenance in project names
-            search_pattern = f'%{filter_keyword}%'
-            cursor.execute(query, (from_date, to_date, search_pattern, search_pattern))
+            cursor.execute(query, (from_date, to_date, filter_type))
         else:
             # Get all employees with attendance in date range
             query = '''
@@ -193,12 +186,10 @@ def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_
             base_query += f' AND e.employee_id IN ({placeholders})'
             params.extend(selected_employees)
         
-        # Add department/project type filter
-        if filter_type and filter_type.lower() in ['construction', 'maintenance']:
-            filter_keyword = filter_type.lower()
-            base_query += ' AND (LOWER(p.project_name) LIKE %s OR LOWER(p.project_name) LIKE %s)'
-            search_pattern = f'%{filter_keyword}%'
-            params.extend([search_pattern, search_pattern])
+        # Add department filter directly on Employee.department
+        if filter_type:
+            base_query += ' AND UPPER(e.department) = UPPER(%s)'
+            params.append(filter_type)
         
         base_query += ' ORDER BY e.employee_id, a.date;'
         
@@ -222,27 +213,12 @@ def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_
             employee_sheet['B4'] = first_row['name']
             employee_sheet.title = f"{first_row['name']}"[:31]  # Excel sheet name limit
             employee_sheet.sheet_view.rightToLeft = template_sheet.sheet_view.rightToLeft
-            employee_sheet[f'I{2}'] = first_row['salary']
+            employee_sheet['I2'] = first_row['salary']
             
-            # Write date range
-            date_range_text = f"{from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}"
-            date_range_cells = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-            for cell_ref in date_range_cells:
-                try:
-                    if employee_sheet[cell_ref].value is None or employee_sheet[cell_ref].value == '':
-                        employee_sheet[cell_ref] = f"Period: {date_range_text}"
-                        break
-                except:
-                    continue
-            
-            # Write monthly hours
-            monthly_hours_cells = ['I3', 'I4', 'I5', 'H3', 'H4']
-            for cell_ref in monthly_hours_cells:
-                try:
-                    employee_sheet[cell_ref] = monthly_hours
-                    break
-                except:
-                    continue
+            # Write date range and month name to the correct template cells
+            employee_sheet['F2'] = from_date
+            employee_sheet['F3'] = to_date
+            employee_sheet['F4'] = calendar.month_name[from_date.month]
             
             # Apply cell protection
             try:
@@ -307,7 +283,7 @@ def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_
                     project_parts = []
                     for _, proj_row in day_data.iterrows():
                         proj_name = proj_row['project_name'] if proj_row['project_name'] else 'Unknown'
-                        proj_hours = int(proj_row['working_hours']) if proj_row['working_hours'] != 0 else 0
+                        proj_hours = int(proj_row['working_hours']) if proj_row['working_hours'] is not None and proj_row['working_hours'] != 0 else 0
                         project_parts.append(f"{proj_name} {proj_hours}hrs")
                     project_text = " + ".join(project_parts)
                 
