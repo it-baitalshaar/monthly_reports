@@ -166,7 +166,8 @@ def main():
                 a.status_attendance,
                 p.project_name,
                 ap.working_hours,
-                ap.overtime_hours
+                ap.overtime_hours,
+                ap.overtime_type
             FROM 
                 "Employee" e
             LEFT JOIN 
@@ -190,7 +191,7 @@ def main():
         
         df = pd.DataFrame(data, columns=[
             'employee_id', 'name', 'salary', 'date', 'notes', 'status',
-            'status_attendance', 'project_name', 'working_hours', 'overtime_hours'
+            'status_attendance', 'project_name', 'working_hours', 'overtime_hours', 'overtime_type'
         ])
         
         grouped_data = df.groupby('employee_id')
@@ -270,15 +271,18 @@ def main():
                     employee_sheet[f'C{row_date}'] = total_working_hours
                 
                 # Sum overtime hours per type (Present / Weekend / Holiday-Work)
-                total_overtime = day_data['overtime_hours'].sum()
+                # Sum overtime hours per overtime_type
+                # Mapping: normal -> D, holiday -> E, public_holiday -> F
+                overtime_mapping = {
+                    'normal': 'D',
+                    'holiday': 'E',
+                    'public_holiday': 'F'
+                }
                 
-                if total_overtime != 0:
-                    if status_attendance == 'Present':
-                        employee_sheet[f'D{row_date}'] = total_overtime
-                    elif status_attendance == 'Weekend':
-                        employee_sheet[f'E{row_date}'] = total_overtime
-                    elif status_attendance == 'Holiday-Work':
-                        employee_sheet[f'F{row_date}'] = total_overtime
+                for ot_type, col in overtime_mapping.items():
+                    ot_sum = day_data[day_data['overtime_type'] == ot_type]['overtime_hours'].sum()
+                    if ot_sum != 0:
+                        employee_sheet[f'{col}{row_date}'] = ot_sum
                 
                 # Build the combined project string
                 if len(day_data) == 1:
