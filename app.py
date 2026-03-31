@@ -5,7 +5,7 @@ import calendar
 import pandas as pd
 import psycopg2
 from openpyxl import load_workbook
-from openpyxl.styles import Protection, Alignment
+from openpyxl.styles import Protection, Alignment, PatternFill
 
 def get_base_dir():
     """
@@ -115,14 +115,25 @@ def get_employees_list(from_date, to_date, filter_type=None):
         cursor.close()
         connection.close()
 
-def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_employees=None, filter_type=None):
+def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_employees=None, filter_type=None, weekend_days=None, holiday_dates=None):
     """
     Generate attendance report and return the file path
     selected_employees: list of employee_ids to include (None = all)
     filter_type: 'construction', 'maintenance', or None
+    weekend_days: list of int weekday numbers treated as weekend (0=Mon … 6=Sun). Default: [5] = Saturday
+    holiday_dates: set/list of 'YYYY-MM-DD' strings to force 'H' status
     """
     # Use dynamic paths
     template_path = TEMPLATE_EXCEL_FILE
+    
+    # Default weekend = Saturday only
+    if weekend_days is None:
+        weekend_days = [5]
+    # Normalise holiday dates to a set of strings
+    if holiday_dates is None:
+        holiday_dates = set()
+    else:
+        holiday_dates = set(holiday_dates)
     
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Template file not found at: {template_path}")
@@ -233,6 +244,10 @@ def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_
             except:
                 pass
             
+            # Define color fills for status
+            weekend_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")  # Yellow
+            holiday_fill = PatternFill(start_color="FF9900", end_color="FF9900", fill_type="solid")  # Orange
+            
             row_date = 7
             daily_grouped = employee_data.groupby('date')
             
@@ -245,12 +260,20 @@ def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_
                 employee_sheet[f'J{row_date}'] = notes
                 
                 # Write attendance status
-                if status == 'present' and status_attendance == 'Present':
-                    employee_sheet[f'B{row_date}'] = 'P'
-                elif status == 'present' and status_attendance == 'Weekend':
+                # 1. Check holiday_dates (manual override from UI) — highest priority
+                date_str = str(date_value)  # YYYY-MM-DD
+                is_weekend_day = hasattr(date_value, 'weekday') and date_value.weekday() in weekend_days
+                if status == 'present' and date_str in holiday_dates:
+                    employee_sheet[f'B{row_date}'] = 'H'
+                    employee_sheet[f'B{row_date}'].fill = holiday_fill
+                elif status == 'present' and (status_attendance == 'Weekend' or is_weekend_day):
                     employee_sheet[f'B{row_date}'] = 'W'
+                    employee_sheet[f'B{row_date}'].fill = weekend_fill
                 elif status == 'present' and status_attendance == 'Holiday-Work':
                     employee_sheet[f'B{row_date}'] = 'H'
+                    employee_sheet[f'B{row_date}'].fill = holiday_fill
+                elif status == 'present' and status_attendance == 'Present':
+                    employee_sheet[f'B{row_date}'] = 'P'
                 elif status == 'absent' and status_attendance == 'Absence without excuse':
                     employee_sheet[f'B{row_date}'] = 'AWO'
                 elif status == 'absent' and status_attendance == 'Sick Leave':
@@ -393,6 +416,13 @@ def generate_report():
         selected_employees = request.form.getlist('selected_employees')  # Get list of selected employee IDs
         filter_type = request.form.get('filter_type', '').strip() or None
         
+        # Read weekend days selection (list of int weekday numbers)
+        weekend_days_raw = request.form.getlist('weekend_days')
+        weekend_days = [int(d) for d in weekend_days_raw if d.isdigit()] if weekend_days_raw else [5]
+
+        # Read holiday dates selection (list of YYYY-MM-DD strings)
+        holiday_dates = set(request.form.getlist('holiday_dates'))
+        
         # Parse dates
         from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
         to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
@@ -419,7 +449,7 @@ def generate_report():
         
         # Generate report
         file_path, employee_count = generate_attendance_report(
-            from_date, to_date, monthly_hours, employee_ids, filter_type
+            from_date, to_date, monthly_hours, employee_ids, filter_type, weekend_days, holiday_dates
         )
         
         filename = os.path.basename(file_path)

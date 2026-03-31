@@ -1,7 +1,7 @@
 import pandas as pd
 import psycopg2
 from openpyxl import load_workbook
-from openpyxl.styles import Protection, Alignment
+from openpyxl.styles import Protection, Alignment, PatternFill
 from datetime import datetime, timedelta
 import calendar
 import os
@@ -226,6 +226,10 @@ def main():
             except:
                 pass  # Skip if protection fails
             
+            # Define color fills for status
+            weekend_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")  # Yellow
+            holiday_fill = PatternFill(start_color="FF9900", end_color="FF9900", fill_type="solid")  # Orange
+            
             row_date = 7  # Start from row 7
             
             # Group by date so each day = exactly one row
@@ -244,12 +248,16 @@ def main():
                 employee_sheet[f'J{row_date}'] = notes
                 
                 # Write attendance status code
-                if status == 'present' and status_attendance == 'Present':
-                    employee_sheet[f'B{row_date}'] = 'P'
-                elif status == 'present' and status_attendance == 'Weekend':
+                # Saturday = weekday 5 (default weekend day)
+                is_weekend_day = hasattr(date_value, 'weekday') and date_value.weekday() in (5,)
+                if status == 'present' and (status_attendance == 'Weekend' or is_weekend_day):
                     employee_sheet[f'B{row_date}'] = 'W'
+                    employee_sheet[f'B{row_date}'].fill = weekend_fill
                 elif status == 'present' and status_attendance == 'Holiday-Work':
                     employee_sheet[f'B{row_date}'] = 'H'
+                    employee_sheet[f'B{row_date}'].fill = holiday_fill
+                elif status == 'present' and status_attendance == 'Present':
+                    employee_sheet[f'B{row_date}'] = 'P'
                 elif status == 'absent' and status_attendance == 'Absence without excuse':
                     employee_sheet[f'B{row_date}'] = 'AWO'
                 elif status == 'absent' and status_attendance == 'Sick Leave':

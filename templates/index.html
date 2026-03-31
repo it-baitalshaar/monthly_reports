@@ -192,6 +192,114 @@
             font-style: italic;
             padding: 10px;
         }
+
+        /* ── Holiday Calendar ── */
+        .holiday-calendar-wrap {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px;
+            background: #fafafa;
+        }
+        .cal-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .cal-nav button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .cal-nav button:hover { background: #5568d3; }
+        .cal-nav button:disabled { background: #ccc; cursor: default; }
+        .cal-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: #333;
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .cal-hdr {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #888;
+            padding: 4px 0;
+        }
+        .cal-day {
+            text-align: center;
+            padding: 6px 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .cal-day:hover:not(.cal-empty):not(.cal-out) {
+            background: #f0f0f0;
+            border-color: #ccc;
+        }
+        .cal-empty, .cal-out {
+            cursor: default;
+            color: #ccc;
+        }
+        .cal-weekend {
+            background: #eef2ff;
+            color: #667eea;
+            font-weight: 600;
+        }
+        .cal-holiday {
+            background: #ffe5e5 !important;
+            color: #c0392b !important;
+            border-color: #e74c3c !important;
+            font-weight: 700;
+        }
+        .cal-holiday-badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            border-radius: 10px;
+            font-size: 11px;
+            padding: 1px 7px;
+            margin-left: 8px;
+        }
+        .holiday-list {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #555;
+            min-height: 20px;
+        }
+        .holiday-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #ffe5e5;
+            color: #c0392b;
+            border: 1px solid #e74c3c;
+            border-radius: 12px;
+            padding: 2px 8px;
+            margin: 2px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .holiday-tag button {
+            background: none;
+            border: none;
+            color: #c0392b;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+            padding: 0;
+        }
     </style>
 </head>
 <body>
@@ -238,7 +346,59 @@
                     • <strong>Al Saqia</strong>: Only SAQIYA department employees
                 </div>
             </div>
-            
+
+            <div class="form-group">
+                <label>Weekend Days</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="0" id="wd_mon"> Monday
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="1" id="wd_tue"> Tuesday
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="2" id="wd_wed"> Wednesday
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="3" id="wd_thu"> Thursday
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="4" id="wd_fri"> Friday
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="5" id="wd_sat" checked> Saturday
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+                        <input type="checkbox" name="weekend_days" value="6" id="wd_sun"> Sunday
+                    </label>
+                </div>
+                <div class="info-box" style="margin-top: 10px;">
+                    <strong>Weekend days</strong> will be marked as <strong>W</strong> in the report. Default: Saturday only.
+                </div>
+            </div>
+
+            <!-- Holiday Calendar -->
+            <div class="form-group">
+                <label>
+                    🗓️ Public Holidays
+                    <span class="cal-holiday-badge" id="holidayCount" style="display:none;">0</span>
+                </label>
+                <div class="holiday-calendar-wrap">
+                    <div class="cal-nav">
+                        <button type="button" id="calPrev" onclick="calMove(-1)">‹ Prev</button>
+                        <span class="cal-title" id="calTitle"></span>
+                        <button type="button" id="calNext" onclick="calMove(1)">Next ›</button>
+                    </div>
+                    <div class="cal-grid" id="calGrid"></div>
+                    <div class="holiday-list" id="holidayTagList"><em style="color:#aaa;">No holidays selected — click a date above to mark it.</em></div>
+                </div>
+                <div class="info-box" style="margin-top:10px;">
+                    Click any date to mark it as a <strong>Public Holiday (H)</strong>. Click again to unmark. Weekend days are highlighted in blue.
+                </div>
+                <!-- Hidden inputs injected by JS -->
+                <div id="holidayHiddenInputs"></div>
+            </div>
+
             <div class="form-group">
                 <label>Select Employees (Leave empty to select all)</label>
                 <div class="employee-selection" id="employeeSelection">
@@ -282,24 +442,179 @@
     
     <script>
         let employeesData = [];
-        
-        // Load employees when page loads
+        let selectedHolidays = new Set(); // YYYY-MM-DD strings
+        let calYear = 0, calMonth = 0;  // currently displayed month
+        let calRangeStart = null, calRangeEnd = null; // Date objects
+
+        const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const MONTH_NAMES = ['January','February','March','April','May','June',
+                             'July','August','September','October','November','December'];
+
+        // ── helpers ──────────────────────────────────────────────
+        function pad(n) { return String(n).padStart(2,'0'); }
+        function toKey(y,m,d) { return `${y}-${pad(m+1)}-${pad(d)}`; }
+        function getWeekendDays() {
+            return Array.from(document.querySelectorAll('input[name="weekend_days"]:checked'))
+                        .map(cb => parseInt(cb.value));
+        }
+
+        // ── calendar render ───────────────────────────────────────
+        function renderCalendar() {
+            const title  = document.getElementById('calTitle');
+            const grid   = document.getElementById('calGrid');
+            const prev   = document.getElementById('calPrev');
+            const next   = document.getElementById('calNext');
+
+            title.textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
+
+            // Disable nav outside range
+            if (calRangeStart) {
+                const atStart = (calYear === calRangeStart.getFullYear() && calMonth === calRangeStart.getMonth());
+                const atEnd   = calRangeEnd
+                    ? (calYear === calRangeEnd.getFullYear() && calMonth === calRangeEnd.getMonth())
+                    : atStart;
+                prev.disabled = atStart;
+                next.disabled = atEnd;
+            }
+
+            const weekends = getWeekendDays(); // 0=Sun,1=Mon,…,6=Sat (JS)
+
+            // Build grid
+            let html = '';
+            DAY_NAMES.forEach(d => { html += `<div class="cal-hdr">${d}</div>`; });
+
+            const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div class="cal-day cal-empty"></div>';
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const key = toKey(calYear, calMonth, d);
+                const dateObj = new Date(calYear, calMonth, d);
+                const jsDow = dateObj.getDay();  // 0=Sun…6=Sat
+                // Convert JS dow to Python weekday (Mon=0…Sun=6)
+                const pyDow = (jsDow + 6) % 7;
+
+                const isHoliday = selectedHolidays.has(key);
+                const isWeekend = weekends.includes(pyDow);
+                const isOutRange = calRangeStart && calRangeEnd &&
+                    (dateObj < calRangeStart || dateObj > calRangeEnd);
+
+                let cls = 'cal-day';
+                if (isOutRange)  cls += ' cal-out';
+                else if (isHoliday) cls += ' cal-holiday';
+                else if (isWeekend) cls += ' cal-weekend';
+
+                const clickable = !isOutRange;
+                html += `<div class="${cls}" ${clickable ? `onclick="toggleHoliday('${key}','${d} ${MONTH_NAMES[calMonth].slice(0,3)} ${calYear}')"` : ''}>${d}</div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function calMove(delta) {
+            calMonth += delta;
+            if (calMonth > 11) { calMonth = 0;  calYear++; }
+            if (calMonth < 0)  { calMonth = 11; calYear--; }
+            renderCalendar();
+        }
+
+        function toggleHoliday(key, label) {
+            if (selectedHolidays.has(key)) {
+                selectedHolidays.delete(key);
+            } else {
+                selectedHolidays.add(key);
+            }
+            renderCalendar();
+            renderHolidayTags();
+            syncHiddenInputs();
+        }
+
+        function renderHolidayTags() {
+            const container = document.getElementById('holidayTagList');
+            const badge     = document.getElementById('holidayCount');
+            const sorted    = Array.from(selectedHolidays).sort();
+
+            if (sorted.length === 0) {
+                container.innerHTML = '<em style="color:#aaa;">No holidays selected — click a date above to mark it.</em>';
+                badge.style.display = 'none';
+                return;
+            }
+
+            badge.textContent  = sorted.length;
+            badge.style.display = 'inline-block';
+
+            container.innerHTML = sorted.map(k => {
+                const [y,m,d] = k.split('-');
+                const label = `${parseInt(d)} ${MONTH_NAMES[parseInt(m)-1].slice(0,3)} ${y}`;
+                return `<span class="holiday-tag">📅 ${label}<button type="button" onclick="toggleHoliday('${k}','${label}')" title="Remove">✕</button></span>`;
+            }).join('');
+        }
+
+        function syncHiddenInputs() {
+            const wrap = document.getElementById('holidayHiddenInputs');
+            wrap.innerHTML = Array.from(selectedHolidays)
+                .map(k => `<input type="hidden" name="holiday_dates" value="${k}">`)
+                .join('');
+        }
+
+        function initCalendar() {
+            const fromVal = document.getElementById('from_date').value;
+            const toVal   = document.getElementById('to_date').value;
+            if (!fromVal) return;
+
+            // Parse as local date (avoid UTC shift)
+            const [fy,fm,fd] = fromVal.split('-').map(Number);
+            calRangeStart = new Date(fy, fm-1, fd);
+            calYear  = fy;
+            calMonth = fm - 1;
+
+            if (toVal) {
+                const [ty,tm,td] = toVal.split('-').map(Number);
+                calRangeEnd = new Date(ty, tm-1, td);
+            } else {
+                calRangeEnd = null;
+            }
+
+            // Remove holidays that are now outside the new range
+            selectedHolidays.forEach(k => {
+                const [ky,km,kd] = k.split('-').map(Number);
+                const d = new Date(ky, km-1, kd);
+                if (calRangeStart && d < calRangeStart) selectedHolidays.delete(k);
+                if (calRangeEnd   && d > calRangeEnd)   selectedHolidays.delete(k);
+            });
+
+            renderCalendar();
+            renderHolidayTags();
+            syncHiddenInputs();
+        }
+
+        // ── existing functions ────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function() {
             loadEmployees();
             calculateMonthlyHours();
-            
-            // Reload employees when dates or filter changes
+            initCalendar();
+
             document.getElementById('from_date').addEventListener('change', function() {
                 loadEmployees();
                 calculateMonthlyHours();
+                initCalendar();
             });
             document.getElementById('to_date').addEventListener('change', function() {
                 loadEmployees();
                 calculateMonthlyHours();
+                initCalendar();
             });
             document.getElementById('filter_type').addEventListener('change', loadEmployees);
-            
-            // Allow manual override of monthly hours
+
+            // Re-render calendar when weekend days change (highlights update)
+            document.querySelectorAll('input[name="weekend_days"]').forEach(cb => {
+                cb.addEventListener('change', renderCalendar);
+            });
+
             const monthlyHoursInput = document.getElementById('monthly_hours');
             monthlyHoursInput.addEventListener('click', function() {
                 if (this.readOnly) {
@@ -309,8 +624,6 @@
                     this.select();
                 }
             });
-            
-            // Make it readonly again if user clears it
             monthlyHoursInput.addEventListener('blur', function() {
                 if (!this.value || this.value === '') {
                     this.readOnly = true;
@@ -320,124 +633,78 @@
                 }
             });
         });
-        
+
         function calculateMonthlyHours() {
             const fromDate = document.getElementById('from_date').value;
-            const toDate = document.getElementById('to_date').value;
-            const monthlyHoursInput = document.getElementById('monthly_hours');
+            const toDate   = document.getElementById('to_date').value;
+            const monthlyHoursInput  = document.getElementById('monthly_hours');
             const calculationDetails = document.getElementById('calculationDetails');
-            
+
             if (!fromDate || !toDate) {
                 monthlyHoursInput.value = '';
                 calculationDetails.textContent = 'Select date range to see calculation';
                 return;
             }
-            
             const from = new Date(fromDate);
-            const to = new Date(toDate);
-            
+            const to   = new Date(toDate);
             if (to < from) {
                 monthlyHoursInput.value = '';
                 calculationDetails.textContent = 'Invalid date range';
                 return;
             }
-            
-            // Calculate difference in days (inclusive of both dates)
             const diffTime = Math.abs(to - from);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both dates
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const calculatedHours = diffDays * 8;
-            
-            // Only update if field is readonly (auto-calculated)
-            if (monthlyHoursInput.readOnly) {
-                monthlyHoursInput.value = calculatedHours;
-            }
-            
-            // Update calculation details
-            calculationDetails.innerHTML = `<strong>${diffDays} days</strong> × 8 hours/day = <strong style="color: #667eea;">${calculatedHours} hours</strong>`;
+            if (monthlyHoursInput.readOnly) { monthlyHoursInput.value = calculatedHours; }
+            calculationDetails.innerHTML = `<strong>${diffDays} days</strong> × 8 hours/day = <strong style="color:#667eea;">${calculatedHours} hours</strong>`;
         }
-        
+
         function loadEmployees() {
-            const fromDate = document.getElementById('from_date').value;
-            const toDate = document.getElementById('to_date').value;
+            const fromDate   = document.getElementById('from_date').value;
+            const toDate     = document.getElementById('to_date').value;
             const filterType = document.getElementById('filter_type').value;
-            
             const employeeList = document.getElementById('employeeList');
             employeeList.innerHTML = '<div class="loading">Loading employees...</div>';
-            
             fetch('/get_employees', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    from_date: fromDate,
-                    to_date: toDate,
-                    filter_type: filterType
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from_date: fromDate, to_date: toDate, filter_type: filterType })
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
-                if (data.success) {
-                    employeesData = data.employees;
-                    renderEmployeeList();
-                } else {
-                    employeeList.innerHTML = '<div style="color: red;">Error loading employees: ' + data.error + '</div>';
-                }
+                if (data.success) { employeesData = data.employees; renderEmployeeList(); }
+                else { employeeList.innerHTML = '<div style="color:red;">Error: ' + data.error + '</div>'; }
             })
-            .catch(error => {
-                employeeList.innerHTML = '<div style="color: red;">Error: ' + error + '</div>';
-            });
+            .catch(err => { employeeList.innerHTML = '<div style="color:red;">Error: ' + err + '</div>'; });
         }
-        
+
         function updateSelectedCount() {
             const checkboxes = document.querySelectorAll('#employeeList input[type="checkbox"]:checked');
-            const count = checkboxes.length;
-            const total = employeesData.length;
-            const countElement = document.getElementById('selectedCount');
-            
-            if (count === 0) {
-                countElement.textContent = '0 selected (all will be included)';
-                countElement.style.color = '#666';
-            } else {
-                countElement.textContent = `${count} of ${total} selected`;
-                countElement.style.color = '#667eea';
-            }
+            const count = checkboxes.length, total = employeesData.length;
+            const el = document.getElementById('selectedCount');
+            if (count === 0) { el.textContent = '0 selected (all will be included)'; el.style.color = '#666'; }
+            else             { el.textContent = `${count} of ${total} selected`;       el.style.color = '#667eea'; }
         }
-        
+
         function renderEmployeeList() {
             const employeeList = document.getElementById('employeeList');
-            
             if (employeesData.length === 0) {
                 employeeList.innerHTML = '<div class="loading">No employees found for the selected criteria.</div>';
-                updateSelectedCount();
-                return;
+                updateSelectedCount(); return;
             }
-            
             let html = '';
             employeesData.forEach(emp => {
-                html += `
-                    <div class="employee-checkbox">
-                        <input type="checkbox" id="emp_${emp.id}" name="selected_employees" value="${emp.id}" onchange="updateSelectedCount()">
-                        <label for="emp_${emp.id}">${emp.name}</label>
-                    </div>
-                `;
+                html += `<div class="employee-checkbox">
+                    <input type="checkbox" id="emp_${emp.id}" name="selected_employees" value="${emp.id}" onchange="updateSelectedCount()">
+                    <label for="emp_${emp.id}">${emp.name}</label>
+                </div>`;
             });
-            
             employeeList.innerHTML = html;
             updateSelectedCount();
         }
-        
-        function selectAll() {
-            const checkboxes = document.querySelectorAll('#employeeList input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = true);
-            updateSelectedCount();
-        }
-        
-        function deselectAll() {
-            const checkboxes = document.querySelectorAll('#employeeList input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = false);
-            updateSelectedCount();
-        }
+
+        function selectAll()   { document.querySelectorAll('#employeeList input[type="checkbox"]').forEach(cb => cb.checked = true);  updateSelectedCount(); }
+        function deselectAll() { document.querySelectorAll('#employeeList input[type="checkbox"]').forEach(cb => cb.checked = false); updateSelectedCount(); }
     </script>
 </body>
 </html>
