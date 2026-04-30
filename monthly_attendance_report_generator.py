@@ -270,9 +270,9 @@ def main():
                 # Sum total working hours for the day
                 total_working_hours = day_data['working_hours'].sum()
                 
-                # If working hours are all 0 but it's Weekend or Holiday-Work, default to 8
-                if total_working_hours == 0:
-                    if status_attendance in ('Weekend', 'Holiday-Work'):
+                # If no hours recorded for a weekend/holiday day, default to 8 for present records only
+                if pd.isna(total_working_hours) or total_working_hours == 0:
+                    if status == 'present' and (status_attendance in ('Weekend', 'Holiday-Work') or is_weekend_day):
                         total_working_hours = 8
                 
                 if total_working_hours != 0:

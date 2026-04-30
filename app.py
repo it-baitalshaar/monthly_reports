@@ -284,8 +284,8 @@ def generate_attendance_report(from_date, to_date, monthly_hours=None, selected_
                     employee_sheet[f'B{row_date}'] = 'V'
                 
                 total_working_hours = day_data['working_hours'].sum()
-                if total_working_hours == 0:
-                    if status_attendance in ('Weekend', 'Holiday-Work'):
+                if pd.isna(total_working_hours) or total_working_hours == 0:
+                    if status == 'present' and (status_attendance in ('Weekend', 'Holiday-Work') or is_weekend_day):
                         total_working_hours = 8
                 
                 if total_working_hours != 0:
